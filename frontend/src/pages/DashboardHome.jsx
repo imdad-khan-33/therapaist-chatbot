@@ -27,17 +27,6 @@ const DashboardHome = () => {
   const theme = useSelector((state) => state.ui.theme);
   const user = useSelector((state) => state.auth.userDetails);
 
-  const [markComplete, { isLoading: markingComplete }] = useMarkSessionCompleteMutation();
-
-  const handleMarkComplete = async () => {
-    try {
-      await markComplete().unwrap();
-      toast.success("Session marked as completed! Great job! 🎉");
-    } catch (err) {
-      toast.error("Failed to mark session complete");
-    }
-  };
-
   const [todayMood, setTodayMood] = useState(7);
 
   // RTK Query hooks
@@ -113,10 +102,6 @@ const DashboardHome = () => {
             <h2 className="text-4xl lg:text-5xl font-extrabold font-heading mb-4">Welcome Back!</h2>
 
             <div className="flex flex-wrap gap-4">
-              {/* <div className="px-5 py-2.5 bg-white text-[#0B6A5A] rounded-xl font-bold text-sm shadow-sm flex items-center gap-2">
-                <FiZap className="text-orange-500 fill-orange-500" />
-                Streak: {user?.streak || 0} Days
-              </div> */}
               <div className="px-5 py-2.5 bg-white/10 hover:bg-white/20 transition-colors border border-white/20 rounded-xl font-bold text-sm flex items-center gap-3">
                 <div>
                   Next Session: {assessmentRes?.session?.nextSessionDate ? new Date(assessmentRes.session.nextSessionDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : "All caught up!"}
@@ -128,14 +113,6 @@ const DashboardHome = () => {
                       className="bg-white text-[#0B6A5A] px-3 py-1 rounded-lg text-xs font-bold hover:bg-gray-100 flex items-center gap-1 shadow-sm"
                     >
                       Start Session <FiMessageSquare />
-                    </button>
-                    <button
-                      onClick={handleMarkComplete}
-                      disabled={markingComplete}
-                      title="Mark as Completed"
-                      className="bg-[#0B6A5A] text-white px-3 py-1 rounded-lg text-xs hover:bg-[#095c4d] disabled:opacity-50 border border-white/20"
-                    >
-                      {markingComplete ? <FiLoader className="animate-spin" /> : <FiCheckCircle />}
                     </button>
                   </div>
                 )}

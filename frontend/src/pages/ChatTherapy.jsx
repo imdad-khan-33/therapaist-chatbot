@@ -8,10 +8,10 @@ import {
   useCreateNewChatMutation,
   useExistingChatMutation
 } from "../slices/chatbotSlice/chatbotApi";
-import { useGetAssessmentResultsQuery } from "../slices/assessment/assessmentApi";
+import { useGetAssessmentResultsQuery, useMarkSessionCompleteMutation } from "../slices/assessment/assessmentApi";
 import ChatBubble from "../components/commonComponents/ChatBubble";
 import TypingIndicator from "../components/commonComponents/TypingIndicator";
-import { FiMic, FiSend, FiLoader, FiPlusCircle, FiClock, FiLock, FiUser } from "react-icons/fi";
+import { FiMic, FiSend, FiLoader, FiPlusCircle, FiClock, FiLock, FiUser, FiPause, FiPlay, FiSquare } from "react-icons/fi";
 import { getProfileImage } from "../utils/imageHelper";
 
 const ChatTherapy = () => {
@@ -59,6 +59,15 @@ const ChatTherapy = () => {
     return () => clearInterval(timer);
   }, [timeLeft, isSessionActive]);
 
+  const isSessionDue = useMemo(() => {
+    if (!assessmentData?.session?.nextSessionDate) return false;
+    return new Date() >= new Date(assessmentData.session.nextSessionDate);
+  }, [assessmentData]);
+
+  const noMoreSessions = useMemo(() => {
+    return assessmentData?.session && !assessmentData.session.nextSessionDate;
+  }, [assessmentData]);
+
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -72,6 +81,23 @@ const ChatTherapy = () => {
   });
   const [createNewChat, { isLoading: creatingChat }] = useCreateNewChatMutation();
   const [sendToExistingChat, { isLoading: sendingToExisting }] = useExistingChatMutation();
+  const [markComplete] = useMarkSessionCompleteMutation();
+
+  // Handle automatic session completion
+  useEffect(() => {
+    if (isTimeUp && isSessionActive) {
+      const handleSessionCompletion = async () => {
+        try {
+          await markComplete().unwrap();
+          toast.success("Session completed! Progressive marks added.", { icon: "✅" });
+          setIsSessionActive(false); // Stop session activity
+        } catch (err) {
+          console.error("Failed to automatically mark session complete:", err);
+        }
+      };
+      handleSessionCompletion();
+    }
+  }, [isTimeUp, isSessionActive, markComplete]);
 
   // Sync sessionId with URL params
   useEffect(() => {
@@ -194,41 +220,58 @@ const ChatTherapy = () => {
 
       {/* Timer Banner */}
       {timeLeft !== null && (
-        <div className={`mx-4 lg:mx-8 mb-4 px-6 py-3 rounded-2xl flex items-center justify-between border shadow-sm transition-colors duration-500 ${isTimeUp ? "bg-red-50 border-red-200 text-red-700" : "bg-[#F0FDFA] border-[#CCFBF1] text-[#0B6A5A]"}`}>
-          <div className="flex items-center gap-2 font-bold">
-            <FiClock className={isTimeUp || (isSessionActive && timeLeft > 0) ? "animate-pulse" : ""} />
-            <span>{isSessionActive ? "Time Remaining:" : "Session Duration:"}</span>
+        <div className={`mx-4 lg:mx-8 mb-4 px-6 py-3 rounded-2xl flex items-center justify-between border shadow-sm transition-all duration-500 ${isTimeUp ? "bg-red-50 border-red-200 text-red-700" : "bg-[#F0FDFA] border-[#CCFBF1] text-[#0B6A5A]"}`}>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 font-bold">
+              <FiClock className={isTimeUp || (isSessionActive && timeLeft > 0) ? "animate-pulse" : ""} />
+              <span className="hidden sm:inline">{isSessionActive ? "Session Active:" : "Session Paused:"}</span>
+            </div>
+            <span className="text-2xl font-black font-mono tracking-widest min-w-[70px]">
+              {formatTime(timeLeft)}
+            </span>
           </div>
-          <span className="text-2xl font-black font-mono tracking-widest">
-            {formatTime(timeLeft)}
-          </span>
+
+          <div className="flex items-center gap-2">
+            {noMoreSessions ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-xl font-bold text-xs">
+                ✨ All sessions completed!
+              </div>
+            ) : isTimeUp ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-xl font-bold text-xs">
+                ✅ Session Complete
+              </div>
+            ) : isSessionDue ? (
+              <>
+                {isSessionActive ? (
+                  <button
+                    onClick={(e) => { e.preventDefault(); setIsSessionActive(false); }}
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-xl font-bold text-xs hover:bg-amber-200 transition-all"
+                    title="Pause Session"
+                  >
+                    <FiPause /> <span className="hidden md:inline">Pause</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => { e.preventDefault(); setIsSessionActive(true); }}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-xl font-bold text-xs hover:bg-emerald-200 transition-all"
+                    title="Start/Resume Session"
+                  >
+                    <FiPlay /> <span className="hidden md:inline">Start/Resume</span>
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className={`flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-500 rounded-xl font-bold text-xs`} title="Your next session is not due yet.">
+                🔒 Next session: {new Date(assessmentData?.session?.nextSessionDate).toLocaleDateString()}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* Main Messaging Container */}
       <div className="flex-1 flex flex-col bg-[#99D6CA]/40 dark:bg-slate-800/50 border border-[#E0F2F1] dark:border-white/10 rounded-[2rem] overflow-hidden shadow-sm p-4 lg:p-8 relative">
 
-        {/* Start Session Overlay */}
-        {!isSessionActive && timeLeft !== null && !isTimeUp && (
-          <div className="absolute inset-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 animate-fade-in">
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl border border-[#E0F2F1] max-w-md w-full">
-              <div className="w-20 h-20 bg-[#E0F2F1] rounded-full flex items-center justify-center mx-auto mb-6 text-[#0B6A5A]">
-                <FiClock size={40} />
-              </div>
-              <h2 className="text-2xl font-black text-[#0B6A5A] font-heading mb-3">Ready to Begin?</h2>
-              <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-                Your session is set for <strong>{Math.floor(timeLeft / 60)} minutes</strong>.
-                Click below when you are ready to start your timer and begin chatting.
-              </p>
-              <button
-                onClick={() => setIsSessionActive(true)}
-                className="w-full py-4 bg-[#0B6A5A] hover:bg-[#095548] text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
-              >
-                <FiPlusCircle /> Start Healing Session
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Messages List Area */}
         <div className="flex-1 overflow-y-auto px-4 lg:px-10 py-6 space-y-10 hide-scrollbar">

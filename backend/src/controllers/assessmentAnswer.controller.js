@@ -171,7 +171,8 @@ const answers = asyncHandler(async (req, res) => {
     // ============ END EMAIL ============
 
     console.log("Sending socket notification...");
-    // ============ NOTIFICATION ENABLED ============
+    // ============ NOTIFICATION REMOVED AS IT IS NOW HANDLED IN FRONTEND TOAST ============
+    /*
     try {
       await sendNotificationToUser(io, userId, {
         title: "Initial Assessment Completed",
@@ -182,6 +183,7 @@ const answers = asyncHandler(async (req, res) => {
     } catch (notifError) {
       console.error(" Notification failed:", notifError.message);
     }
+    */
     // ============ END NOTIFICATION ============
 
     // AI-BASED SESSION SCHEDULING

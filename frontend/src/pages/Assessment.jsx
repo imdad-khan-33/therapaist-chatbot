@@ -161,11 +161,10 @@ const Questionnaire = () => {
               {currentQuestion?.options.map((option, index) => (
                 <label
                   key={index}
-                  className={`border p-3 rounded-[17px] cursor-pointer flex items-center gap-3 leading-5 transition-all duration-200 ${
-                    selectedOption === option
-                      ? "border-customBg"
-                      : "border-gray-300"
-                  }`}
+                  className={`border p-3 rounded-[17px] cursor-pointer flex items-center gap-3 leading-5 transition-all duration-200 ${selectedOption === option
+                    ? "border-customBg"
+                    : "border-gray-300"
+                    }`}
                 >
                   <input
                     type="radio"
@@ -177,11 +176,10 @@ const Questionnaire = () => {
                   />
                   {/* Custom circle */}
                   <div
-                    className={`w-7 h-7 rounded-full border-4 flex items-center justify-center transition-all duration-200 ${
-                      selectedOption === option
-                        ? "border-customBg"
-                        : "border-gray-400"
-                    }`}
+                    className={`w-7 h-7 rounded-full border-4 flex items-center justify-center transition-all duration-200 ${selectedOption === option
+                      ? "border-customBg"
+                      : "border-gray-400"
+                      }`}
                   >
                     {/* {selectedOption === option && (
                       <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
