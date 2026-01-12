@@ -2,7 +2,9 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useGetMoodHistoryQuery, useLogMoodMutation } from "../slices/mood/moodApi";
-import { useGetAssessmentResultsQuery, useMarkSessionCompleteMutation } from "../slices/assessment/assessmentApi"; // ✅ Import hook
+import { useGetAssessmentResultsQuery } from "../slices/assessment/assessmentApi";
+import { useUpdateSessionProgressMutation } from "../slices/auth/authApi";
+
 import { useSelector } from "react-redux";
 import {
   FiSmile,
@@ -31,8 +33,22 @@ const DashboardHome = () => {
 
   // RTK Query hooks
   const { data: moodHistoryRes, isLoading: moodLoading } = useGetMoodHistoryQuery(7);
-  const { data: assessmentRes, isLoading: assessmentLoading } = useGetAssessmentResultsQuery();
+  const { data: assessmentRes, isLoading: assessmentLoading, refetch: refetchAssessment } = useGetAssessmentResultsQuery();
   const [logMood, { isLoading: logLoading }] = useLogMoodMutation();
+  const [completeSession, { isLoading: completing }] = useUpdateSessionProgressMutation();
+
+  const handleCompleteSession = async () => {
+    try {
+      if (!window.confirm("Are you sure you want to mark this session as complete?")) return;
+      await completeSession().unwrap();
+      // toast.success("Session completed! Great progress!");
+      refetchAssessment();
+    } catch (err) {
+      console.error(err);
+      const errorMessage = err?.data?.message || err?.error || "Failed to complete session.";
+      toast.error(errorMessage);
+    }
+  };
 
   const moodHistory = useMemo(() => {
     if (!moodHistoryRes?.data) return [];
@@ -113,6 +129,13 @@ const DashboardHome = () => {
                       className="bg-white text-[#0B6A5A] px-3 py-1 rounded-lg text-xs font-bold hover:bg-gray-100 flex items-center gap-1 shadow-sm"
                     >
                       Start Session <FiMessageSquare />
+                    </button>
+                    <button
+                      onClick={handleCompleteSession}
+                      disabled={completing}
+                      className="bg-[#0B6A5A] text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-[#095548] flex items-center gap-1 shadow-sm disabled:opacity-50"
+                    >
+                      {completing ? <FiLoader className="animate-spin" /> : <FiCheckCircle />} Mark Complete
                     </button>
                   </div>
                 )}

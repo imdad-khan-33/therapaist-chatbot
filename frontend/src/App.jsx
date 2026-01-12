@@ -41,7 +41,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import socket from "./utils/socket";
-import { addNotification } from "./slices/NotificationSlice/NotificationSlice";
+import { addRealtimeNotification } from "./slices/NotificationSlice/NotificationSlice";
+import { notificationApi } from "./slices/NotificationSlice/notificationApi";
 import toast from "react-hot-toast";
 
 function App() {
@@ -73,9 +74,12 @@ function App() {
     };
 
     const handleNotification = (data) => {
-      console.log("🔔 Notification received:", data);
-      dispatch(addNotification(data));
-      toast.success(data.message, {
+      console.log("🟨 [App] Socket: Notification received event", data);
+      dispatch(addRealtimeNotification(data));
+      // Refetch notifications to sync with backend
+      console.log("🟨 [App] Invalidating notification tags");
+      dispatch(notificationApi.util.invalidateTags(["Notifications"]));
+      toast.success(data.message || data.title, {
         icon: '🔔',
         duration: 5000
       });

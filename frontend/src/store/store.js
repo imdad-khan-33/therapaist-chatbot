@@ -8,6 +8,7 @@ import { chatbotApi } from "../slices/chatbotSlice/chatbotApi";
 import { chatbotSlice } from "../slices/chatbotSlice/chatbotSlice";
 import { sseApi } from "../slices/chatbotSlice/sseApiSlice";
 import { notificationSlice } from "../slices/NotificationSlice/NotificationSlice";
+import { notificationApi } from "../slices/NotificationSlice/notificationApi";
 import { moodApi } from "../slices/mood/moodApi";
 
 
@@ -20,6 +21,7 @@ const appReducer = combineReducers({
     [chatbotApi.reducerPath]: chatbotApi.reducer,
     [sseApi.reducerPath]: sseApi.reducer,
     [notificationSlice.name]: notificationSlice.reducer,
+    [notificationApi.reducerPath]: notificationApi.reducer,
     [moodApi.reducerPath]: moodApi.reducer,
     ui: uiReducer
 });
@@ -35,7 +37,7 @@ const store = configureStore({
     reducer: rootReducer,
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
-        }).concat(authApi.middleware, assessmentApi.middleware, chatbotApi.middleware, sseApi.middleware, moodApi.middleware),
+        }).concat(authApi.middleware, assessmentApi.middleware, chatbotApi.middleware, sseApi.middleware, moodApi.middleware, notificationApi.middleware),
 })
 
 

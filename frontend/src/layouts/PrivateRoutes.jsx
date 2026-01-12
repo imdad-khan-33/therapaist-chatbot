@@ -7,7 +7,8 @@ import CustomLoader from "../components/commonComponents/CustomLoader";
 import { useLazyGetbotChatIdsQuery } from "../slices/chatbotSlice/chatbotApi";
 import { setChatbotIds, setLoadingIds } from "../slices/chatbotSlice/chatbotSlice";
 import socket from "../utils/socket";
-import { addNotification } from "../slices/NotificationSlice/NotificationSlice";
+import { addRealtimeNotification } from "../slices/NotificationSlice/NotificationSlice";
+import { notificationApi } from "../slices/NotificationSlice/notificationApi";
 import { jwtDecode } from "jwt-decode";
 
 const PrivateRoutes = () => {
@@ -50,25 +51,30 @@ const PrivateRoutes = () => {
       if (!socket.connected) socket.connect();
 
       const handleConnect = () => {
-        console.log("udser id :", userIdFromToken)
-        console.log(" Socket connected:", socket.id);
+        console.log("User ID:", userIdFromToken);
+        console.log("Socket connected:", socket.id);
         socket.emit("register", userIdFromToken);
       };
 
       const handleNotification = (data) => {
-        console.log(" Notification received:", data);
-        dispatch(addNotification(data));
+        console.log("Notification received via socket:", data);
+        dispatch(addRealtimeNotification(data));
+        // Refetch notifications to sync with backend
+        dispatch(notificationApi.util.invalidateTags(["Notifications"]));
       };
 
       const handleError = (err) => {
-        console.error(" Socket error:", err.message);
+        console.error("Socket error:", err.message);
       };
 
       socket.on("connect", handleConnect);
       socket.on("notification", handleNotification);
       socket.on("connect_error", handleError);
 
-      // setSocketRegistered(true);
+      // If already connected, register immediately
+      if (socket.connected) {
+        handleConnect();
+      }
 
       return () => {
         socket.off("connect", handleConnect);

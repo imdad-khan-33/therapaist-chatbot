@@ -1,10 +1,18 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { attachAuthHeaders } from "../../utils/prepareHeaders";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
 
 export const authApi = createApi({
   reducerPath: "authApi",
-  baseQuery: fetchBaseQuery({ baseUrl: BASE_URL, credentials: "include" }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: BASE_URL,
+    credentials: "include",
+    prepareHeaders: (headers) => {
+      headers.set("ngrok-skip-browser-warning", "true");
+      return attachAuthHeaders(headers);
+    }
+  }),
   endpoints: (builder) => ({
     login: builder.mutation({
       query: (credentials) => ({
@@ -21,6 +29,20 @@ export const authApi = createApi({
           body: data,
         };
       },
+    }),
+    sendOtp: builder.mutation({
+      query: (data) => ({
+        url: "/otp/",
+        method: "POST",
+        body: data,
+      }),
+    }),
+    verifyLoginOtp: builder.mutation({
+      query: (data) => ({
+        url: "/users/verify-login-otp",
+        method: "POST",
+        body: data,
+      }),
     }),
     forgotPassword: builder.mutation({
       query: (email) => ({
@@ -76,7 +98,7 @@ export const authApi = createApi({
     }),
     updateSessionProgress: builder.mutation({
       query: () => ({
-        url: "/users/complete-session",
+        url: "/session/complete",
         method: "POST",
       }),
     }),
@@ -86,6 +108,8 @@ export const authApi = createApi({
 export const {
   useLoginMutation,
   useRegisterMutation,
+  useSendOtpMutation,
+  useVerifyLoginOtpMutation,
   useGetCurrentUserQuery,
   useVerifyEmailMutation,
   useForgotPasswordMutation,

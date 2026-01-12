@@ -9,7 +9,6 @@ export const attachAuthHeaders = (headers) => {
       const currentTime = Date.now() / 1000;
       if (decodedToken.exp && decodedToken.exp > currentTime) {
         headers.set("Authorization", `Bearer ${rawToken}`);
-        headers.set("Content-Type", "application/json");
         headers.set("Accept", "application/json");
       } else {
         localStorage.removeItem("Therapy-user-token");

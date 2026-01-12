@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import {
   useLoginMutation,
+  useVerifyLoginOtpMutation,
   useLazyGetCurrentUserQuery,
 } from "../../slices/auth/authApi";
 import { useForm } from "react-hook-form";
@@ -17,6 +18,8 @@ import notifyToast from "../../utils/utilityFunctions";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const {
     register,
     handleSubmit,
@@ -25,6 +28,7 @@ const Login = () => {
   } = useForm();
 
   const [LoginUser, { isLoading: LoginLoading }] = useLoginMutation();
+  const [verifyLoginOtp, { isLoading: VerifyOtpLoading }] = useVerifyLoginOtpMutation();
   const [getCurrentUser] = useLazyGetCurrentUserQuery();
   const { LoadingIds } = useSelector((state) => state.chatbotSlice);
   const dispatch = useDispatch();
@@ -33,58 +37,67 @@ const Login = () => {
 
   // Submit Login request
   const onSubmit = async (formData) => {
-    try {
-      // 1. Call login
-      const res = await LoginUser(formData).unwrap();
-      const { accessToken, refreshToken, user } = res.data;
-
-      // 2. Save token to Redux + localStorage
-      dispatch(setCredentials(accessToken));
-      dispatch(setUserDetails(user)); // Set user details immediately
-      localStorage.setItem("Therapy-user-token", accessToken);
-      if (refreshToken) {
-        localStorage.setItem("Therapy-refresh-token", refreshToken);
-      }
-
-      // 3. Get assessment status (renamed from user details context)
+    if (!otpSent) {
+      // Step 1: Send credentials and get OTP
       try {
-        const assessmentRes = await getCurrentUser().unwrap();
-        console.log("Assessment details:", assessmentRes);
-
-        // Don't overwrite userDetails with assessment data unless strictly needed. 
-        // If assessmentRes contains user info merged, fine, but likely it doesn't.
-        // dispatch(setUserDetails(userRes?.data)); <-- REMOVED to prevent overwriting correct user data
-
-        // 4. Toast and navigate
-        toast.success("Login successful!");
-        reset();
-
-        if (assessmentRes?.data?.completed) {
-          console.log("Navigating to dashboard");
-          setTimeout(() => navigate(`/dashboard`), 500);
+        const res = await LoginUser(formData).unwrap();
+        setUserEmail(formData.email);
+        setOtpSent(true);
+        notifyToast("OTP sent to your email!", "success");
+      } catch (error) {
+        console.error("Login error:", error);
+        if (error?.data?.message === "User not found") {
+          notifyToast("Email not found. Please register first.", "error");
+        } else if (error?.data?.message === "Invalid password") {
+          notifyToast("Incorrect password. Please try again.", "error");
+        } else if (error?.data?.message === "User not verified") {
+          notifyToast("User not verified. Please check your email.", "error");
+        } else if (error?.data?.message === "User not verfied") {
+          notifyToast("User not verified. Please check your email.", "error");
         } else {
-          console.log("Navigating to assessment");
-          setTimeout(() => navigate("/auth/assessment"), 500);
+          notifyToast(error?.data?.message || "Login failed. Please try again.", "error");
         }
-      } catch (userError) {
-        console.error("Error getting user details:", userError);
-        // If getting user details fails, still try to navigate to dashboard
-        toast.success("Login successful!");
-        reset();
-        setTimeout(() => navigate("/dashboard"), 500);
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      if (error?.data?.message === "User not found") {
-        notifyToast("Email not found. Please register first.", "error");
-      } else if (error?.data?.message === "Invalid password") {
-        notifyToast("Incorrect password. Please try again.", "error");
-      } else if (error?.data?.message === "User not verified") {
-        notifyToast("User not verified. Please check your email.", "error");
-      } else if (error?.data?.message === "User not verfied") {
-        notifyToast("User not verified. Please check your email.", "error");
-      } else {
-        notifyToast(error?.data?.message || "Login failed. Please try again.", "error");
+    } else {
+      // Step 2: Verify OTP and complete login
+      try {
+        const res = await verifyLoginOtp({ email: userEmail, otp: formData.otp }).unwrap();
+        const { accessToken, refreshToken, user } = res.data;
+
+        // 2. Save token to Redux + localStorage
+        dispatch(setCredentials(accessToken));
+        dispatch(setUserDetails(user)); // Set user details immediately
+        localStorage.setItem("Therapy-user-token", accessToken);
+        if (refreshToken) {
+          localStorage.setItem("Therapy-refresh-token", refreshToken);
+        }
+
+        // 3. Get assessment status
+        try {
+          const assessmentRes = await getCurrentUser().unwrap();
+          console.log("Assessment details:", assessmentRes);
+
+          // 4. Toast and navigate
+          toast.success("Login successful!");
+          reset();
+
+          if (assessmentRes?.data?.completed) {
+            console.log("Navigating to dashboard");
+            setTimeout(() => navigate(`/dashboard`), 500);
+          } else {
+            console.log("Navigating to assessment");
+            setTimeout(() => navigate("/auth/assessment"), 500);
+          }
+        } catch (userError) {
+          console.error("Error getting user details:", userError);
+          // If getting user details fails, still try to navigate to dashboard
+          toast.success("Login successful!");
+          reset();
+          setTimeout(() => navigate("/dashboard"), 500);
+        }
+      } catch (error) {
+        console.error("OTP verification error:", error);
+        notifyToast(error?.data?.message || "Invalid OTP. Please try again.", "error");
       }
     }
   };
@@ -136,6 +149,7 @@ const Login = () => {
                 id="email"
                 placeholder="Enter your email"
                 autoComplete="email"
+                disabled={otpSent}
                 {...register("email", {
                   required: "Email is required",
                   pattern: {
@@ -151,57 +165,110 @@ const Login = () => {
               )}
             </div>
 
-            {/* Password */}
-            <div className="flex flex-col relative">
-              <label
-                htmlFor="password"
-                className="font-body text-[#344054] text-[14px] flex justify-between"
-              >
-                <span>Password</span>
-                <Link to="/forgot-password">Forgot Password</Link>
-              </label>
-              <input
-                className="auth-input placeholder:text-[14px]"
-                type={showPassword ? "text" : "password"}
-                id="password"
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                {...register("password", {
-                  required: "Password is required",
-                  minLength: {
-                    value: 6,
-                    message: "Password must be at least 6 characters",
-                  },
-                  pattern: {
-                    value: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/,
-                    message:
-                      "Password must contain at least one letter and one number",
-                  },
-                })}
-              />
-              <span
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 cursor-pointer text-gray-500"
-              >
-                {showPassword ? (
-                  <IoEyeOutline size={20} />
-                ) : (
-                  <FaEyeSlash size={20} />
-                )}
-              </span>
-              {errors.password && (
-                <span className="text-red-500 text-[12px]">
-                  {errors.password.message}
+            {/* Password - Only shown if OTP not sent yet */}
+            {!otpSent && (
+              <div className="flex flex-col relative">
+                <label
+                  htmlFor="password"
+                  className="font-body text-[#344054] text-[14px] flex justify-between"
+                >
+                  <span>Password</span>
+                  <Link to="/forgot-password">Forgot Password</Link>
+                </label>
+                <input
+                  className="auth-input placeholder:text-[14px]"
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  {...register("password", {
+                    required: !otpSent ? "Password is required" : false,
+                    minLength: {
+                      value: 6,
+                      message: "Password must be at least 6 characters",
+                    },
+                    pattern: {
+                      value: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/,
+                      message:
+                        "Password must contain at least one letter and one number",
+                    },
+                  })}
+                />
+                <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-9 cursor-pointer text-gray-500"
+                >
+                  {showPassword ? (
+                    <IoEyeOutline size={20} />
+                  ) : (
+                    <FaEyeSlash size={20} />
+                  )}
                 </span>
-              )}
-            </div>
+                {errors.password && (
+                  <span className="text-red-500 text-[12px]">
+                    {errors.password.message}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* OTP Input - Only shown after OTP is sent */}
+            {otpSent && (
+              <div className="flex flex-col">
+                <div className="flex flex-col gap-0">
+                  <label
+                    htmlFor="otp"
+                    className="font-body text-[#344054] font-normal text-[14px]"
+                  >
+                    Enter OTP
+                  </label>
+                  <input
+                    className="auth-input placeholder:text-[14px]"
+                    type="text"
+                    id="otp"
+                    placeholder="Enter 6-digit OTP sent to your email"
+                    maxLength={6}
+                    autoFocus
+                    {...register("otp", {
+                      required: otpSent ? "OTP is required" : false,
+                      pattern: {
+                        value: /^\d{6}$/,
+                        message: "OTP must be 6 digits",
+                      },
+                    })}
+                  />
+                </div>
+                {errors.otp && (
+                  <span className="text-red-500 text-[12px]">
+                    {errors.otp.message}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOtpSent(false);
+                    setUserEmail("");
+                    reset({ otp: "", password: "" });
+                  }}
+                  className="text-[#06594A] text-[12px] mt-1 text-left hover:underline"
+                >
+                  Change credentials?
+                </button>
+              </div>
+            )}
 
             <button
               className="bg-customBg text-[#FCFCFD] text-[16px] font-semibold p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
-              disabled={LoginLoading}
+              disabled={LoginLoading || VerifyOtpLoading}
             >
-              {LoginLoading ? "Logging In..." : "Log In"}
+              {LoginLoading
+                ? "Sending OTP..."
+                : VerifyOtpLoading
+                  ? "Verifying..."
+                  : otpSent
+                    ? "Verify & Log In"
+                    : "Continue"}
             </button>
           </form>
         </div>

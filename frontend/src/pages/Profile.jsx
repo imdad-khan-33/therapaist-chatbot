@@ -27,7 +27,8 @@ const Profile = () => {
     const moods = moodHistoryRes?.data || [];
     const avg = moods.length ? (moods.reduce((a, b) => a + b.mood, 0) / moods.length).toFixed(1) : "0.0";
     const sessions = assessmentRes?.session?.sessions || [];
-    const completed = sessions.filter(s => s.status === "completed").length;
+    // Fix: Check for isCompleted boolean instead of status string
+    const completed = sessions.filter(s => s.isCompleted === true).length;
     const progress = sessions.length ? Math.round((completed / sessions.length) * 100) : 0;
 
     return {
@@ -38,11 +39,43 @@ const Profile = () => {
     };
   }, [moodHistoryRes, assessmentRes]);
 
-  const achievements = [
-    { icon: FiCheckCircle, label: "Started Journey", earned: true, color: "text-[#00796B]", bgColor: "bg-[#E0F2F1]" },
-    { icon: FiMessageSquare, label: "First Assessment", earned: !!assessmentRes, color: "text-[#00796B]", bgColor: "bg-[#E0F2F1]" },
-    { icon: FiTrendingUp, label: "Mood Logged", earned: !!moodHistoryRes?.data?.length, color: "text-[#00796B]", bgColor: "bg-[#E0F2F1]" },
-  ];
+  const achievements = useMemo(() => {
+    const baseAchievements = [
+      {
+        icon: FiMessageSquare,
+        label: "First Assessment",
+        earned: !!assessmentRes,
+        color: "text-[#00796B]",
+        bgColor: "bg-[#E0F2F1]"
+      },
+      {
+        icon: FiCheckCircle,
+        label: "Started Journey",
+        earned: stats.completedSessions > 0 && stats.completedSessions === stats.totalSessions,
+        color: "text-[#00796B]",
+        bgColor: "bg-[#E0F2F1]"
+      },
+    ];
+
+  
+    const dbBadges = (user?.badges || [])
+      .filter(badge =>
+        !baseAchievements.some(a => a.label === badge.name) &&
+        !["First Step", "Started Journey", "First Assessment", "Warrior", "Halfway Hero", "Mood Logged"].includes(badge.name)
+      )
+      .map(badge => ({
+        icon: FiAward,
+        label: badge.name,
+        earned: true,
+        color: "text-[#00796B]",
+        bgColor: "bg-[#E0F2F1]",
+        description: badge.description
+      }));
+
+    return [...baseAchievements, ...dbBadges];
+  },);
+
+
 
   const handleEditChange = (field, value) => {
     setEditData((prev) => ({ ...prev, [field]: value }));
@@ -242,7 +275,7 @@ const Profile = () => {
                     </div>
                     <p className="font-black text-gray-800 dark:text-gray-200 text-sm leading-tight mb-1">{achievement.label}</p>
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                      {achievement.earned ? "Unlocked" : "Locked"}
+                      {achievement.earned ? "Locked" : "Unlocked"}
                     </p>
                   </div>
                 );

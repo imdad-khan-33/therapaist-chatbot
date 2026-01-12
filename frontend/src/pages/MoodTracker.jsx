@@ -92,7 +92,7 @@ const MoodTracker = () => {
             <span className="text-orange-700 font-black text-sm">{user?.streak || 0}-Day Streak</span>
           </div> */}
 
-          <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit">
+          {/* <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit">
             <button
               onClick={() => setTab("weekly")}
               className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${tab === "weekly"
@@ -102,7 +102,7 @@ const MoodTracker = () => {
             >
               Pattern
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
 

@@ -11,8 +11,6 @@ import {
   FiSettings,
   FiMenu,
   FiX,
-  FiBell,
-  FiSearch,
   FiChevronDown,
   FiSun,
   FiMoon
@@ -22,8 +20,9 @@ import { toggleTheme } from "../slices/uiSlice";
 import { logout } from "../slices/auth/authSlice";
 import { useLogoutMutation } from "../slices/auth/authApi";
 import toast from "react-hot-toast";
-import userImg from "../assets/images/user.png";
+//import userImg from "../assets/images/user.png";
 import { getProfileImage } from "../utils/imageHelper";
+import NotificationDropdown from "../components/NotificationDropdown";
 
 const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
@@ -31,7 +30,6 @@ const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const dispatch = useDispatch();
   const theme = useSelector((state) => state.ui.theme);
-  const notifications = useSelector((state) => state.notificationSlice.list);
   const userDetails = useSelector((state) => state.auth.userDetails);
   const [logoutApiCall] = useLogoutMutation();
 
@@ -123,14 +121,14 @@ const DashboardLayout = ({ children }) => {
             </button>
 
             {/* Search Bar */}
-            <div className={`hidden md:flex items-center ${theme === 'dark' ? 'bg-slate-800' : 'bg-white/90'} rounded-full px-5 py-2 w-full max-w-md shadow-inner transition-colors duration-300`}>
+            {/* <div className={`hidden md:flex items-center ${theme === 'dark' ? 'bg-slate-800' : 'bg-white/90'} rounded-full px-5 py-2 w-full max-w-md shadow-inner transition-colors duration-300`}>
               <FiSearch className="text-gray-400 mr-3" />
               <input
                 type="text"
                 placeholder="Search"
                 className={`bg-transparent border-none focus:ring-0 text-sm font-bold ${theme === 'dark' ? 'text-white placeholder:text-gray-500' : 'text-gray-700 placeholder:text-gray-400'} w-full transition-colors duration-300`}
               />
-            </div>
+            </div> */}
           </div>
 
           <div className="flex items-center gap-6">
@@ -144,14 +142,8 @@ const DashboardLayout = ({ children }) => {
                 {theme === "light" ? <FiMoon size={22} /> : <FiSun size={22} />}
               </button>
 
-              <button className="relative text-white/80 hover:text-white transition-colors p-2">
-                <FiBell size={24} />
-                {notifications.length > 0 && (
-                  <span className="absolute top-1 right-1 bg-red-500 w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#0B6A5A] text-[10px] font-bold">
-                    {notifications.length}
-                  </span>
-                )}
-              </button>
+              {/* Notification Dropdown */}
+              <NotificationDropdown />
             </div>
 
             <div

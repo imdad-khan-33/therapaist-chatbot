@@ -149,7 +149,7 @@ const Settings = () => {
                   <Icon size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-gray-800 tracking-tight">{section.title}</h3>
+                  <h3 className="text-xl font-black text-gray-500 tracking-tight">{section.title}</h3>
                   <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{section.description}</p>
                 </div>
               </div>
@@ -159,7 +159,7 @@ const Settings = () => {
                   <div key={sIdx} className="space-y-4">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex-1">
-                        <label className="text-lg font-bold text-gray-800 leading-none">{setting.label}</label>
+                        <label className="text-lg font-bold text-gray-500 leading-none">{setting.label}</label>
                         <p className="text-sm text-gray-400 font-medium mt-1">{setting.description}</p>
                       </div>
 
